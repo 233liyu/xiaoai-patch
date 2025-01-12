@@ -1,0 +1,148 @@
+#!/bin/sh /etc/rc.common
+START=10
+STOP=98
+. /usr/sbin/boot_function.sh
+#boardid   [digital] default 0
+#boardname [string]
+#wifichip  [bcm43458|bcm43455|bcm43436|xr829|8723ds|8821cs] used in /etc/init.d/wireless
+#
+#board_id|board_id|wifi_chip used in 
+#     binfo_create_xxx()
+#     boot_function.sh:binfo_fix_board_info()
+#0 l09a_8821 8821
+board_id="0"
+board_name="l09a_8821cs"
+wifi_chip="8821cs"
+
+KEYPATH=/sys/class/unifykeys
+binfo_create_l09a() 
+{
+    echo "deviceid" > $KEYPATH/name
+    sn=`cat $KEYPATH/read`
+
+    echo "didkey" > $KEYPATH/name
+    res=`cat $KEYPATH/read`
+
+    miio_did=`echo $res | cut -d '|' -f 2`
+    miio_key=`echo $res | cut -d '|' -f 3`
+
+    echo "mac_wifi" > $KEYPATH/name
+    mac_wifi=`cat $KEYPATH/read`
+
+    echo "mac_bt" > $KEYPATH/name
+    mac_bt=`cat $KEYPATH/read`
+
+    echo "manufactid" > $KEYPATH/name
+    location=`cat $KEYPATH/read`
+
+    echo "usid" > $KEYPATH/name
+    lhdc_key=`cat $KEYPATH/read`
+
+    #cpu_serial=`cat  /proc/cpuinfo |awk -F: '{if($1~/^Serial/) { gsub(/\ /,"",$2);print $2}}'`
+
+echo 'config binfo "binfo"' > /data/etc/binfo
+    uci -c /data/etc -q batch <<EOF
+    set binfo.binfo.sn=$sn
+    set binfo.binfo.mac_wifi=$mac_wifi
+    set binfo.binfo.mac_bt=$mac_bt
+    set binfo.binfo.miio_did=$miio_did
+    set binfo.binfo.miio_key=$miio_key
+    set binfo.binfo.board_id=$board_id
+    set binfo.binfo.board_name=$board_name
+    set binfo.binfo.wifi_chip=$wifi_chip
+    set binfo.binfo.location=$location
+    set binfo.binfo.lhdc_key=$lhdc_key
+    commit binfo
+EOF
+}
+
+
+wifi_bt_driver_prepare_l09a() 
+{
+    try_cp /lib/firmware/rtlwifi/wifi_efuse_8821cs.map /data/wifi/wifi_efuse_8821cs.map
+
+    echo "mac_wifi" > $KEYPATH/name
+    mac_wifi=$(cat $KEYPATH/read)
+
+    str_wifi=$(cat /data/wifi/wifimac.txt)
+    [ "$mac_wifi" != "$str_wifi" ] && echo "$mac_wifi" > /data/wifi/wifimac.txt
+
+    echo "mac_bt" > $KEYPATH/name
+    mac_bt=$(cat $KEYPATH/read)
+
+    str_bt=$(cat /data/bt/bdaddr)
+    [ "$mac_bt" != "$str_bt" ] && echo "$mac_bt" > /data/bt/bdaddr
+
+    try_cp /etc/bt/bt_config.xml /data/bt/bt_config.xml
+    str1=$(cat /data/bt/bt_config.xml |grep bd_addr)
+    str2=$(echo ${str1#*>})
+    oldmac=$(echo ${str2%:*})
+    [ "$mac_bt" != "$oldmac" ] && {
+        sed -i "s|<bd_addr>.*|<bd_addr>$mac_bt:</bd_addr>|" /data/bt/bt_config.xml
+    }
+}
+
+boot() 
+{
+    openwrt_env_prepare
+
+    /sbin/kmodloader
+
+    [ ! -f /etc/config/wireless ] && {
+        # compat for brcm47xx and mvebu
+        sleep 1
+    }
+
+    uci_apply_defaults
+
+    # temporary hack until configd exists
+    /sbin/reload_config
+
+    mount -t pstore pstore /sys/fs/pstore
+
+    ubiattach -p /dev/mtd6
+    mount -t ubifs /dev/ubi0_0 /data
+    if [ $? != 0 ]; then
+        echo Mount data partition is failed, so format it ...
+        ubidetach -p /dev/mtd6
+        flash_erase /dev/mtd6 0 0
+        ubiattach -p /dev/mtd6
+        ubimkvol -N data -m /dev/ubi0
+        mount -t ubifs /dev/ubi0_0 /data
+    fi
+    mkdir -p /data/etc
+
+    /sbin/ifconfig lo up
+
+    # reset mrvl wifi
+    [ ! -d /sys/class/gpio/gpio78 ] && echo 78 > /sys/class/gpio/export
+    echo out > /sys/class/gpio/gpio78/direction
+    echo 0 > /sys/class/gpio/gpio78/value
+    #Delay 500ms
+    sleep 0.5
+    echo 1 > /sys/class/gpio/gpio78/value
+    sleep 0.5
+
+    [ -x /bin/silentboot.sh ] && {
+        echo "`/bin/silentboot.sh get`" > /tmp/silent.flag
+    }
+
+    data_dir_prepare
+
+    binfo_check
+
+    [ ! -f /data/etc/binfo ] && binfo_create_l09a
+    binfo_translate_to_config
+
+    binfo_fix_board_info
+
+    wifi_bt_driver_prepare_l09a
+
+    time_init_buildtime
+    hostname_set
+
+    sound_vendor_prepare
+    bluetooth_init
+
+    miio_fix_registed_file
+}

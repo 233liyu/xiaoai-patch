@@ -1,0 +1,5 @@
+config core 'manifest'
+	# appid
+	option APPID '527512289645953024'
+	# apptoken
+	option APPTOKEN 'null'
