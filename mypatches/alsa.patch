@@ -1,0 +1,79 @@
+diff --git a/etc/asound.conf b/etc/asound.conf
+index 66be0f7..f5d7f7e 100644
+--- a/etc/asound.conf
++++ b/etc/asound.conf
+@@ -1,9 +1,15 @@
+ pcm.!default {
++  type asym
++  playback.pcm "general"
++  capture.pcm "mico_record"
++}
++
++pcm.general {
+   type plug
+   slave {
+     pcm {
+       type softvol
+-      slave.pcm dtsaudio
++      slave.pcm dmixer
+       control{
+         name "mysoftvol"
+         card 0
+@@ -55,26 +61,7 @@ pcm.notify {
+   }
+ }
+ 
+-pcm.dtsaudio {
+-	type plug
+-	slave.pcm "dtsladspa"
+-}
+-
+-pcm.dtsladspa {
+-	type ladspa
+-	slave.pcm plug:dmixer
+-	channels 2
+-	path "/usr/lib/"
+-	playback_plugins [{
+-	filename "/usr/lib/libdts.so"
+-	label dts_process
+-		input {
+-			controls [4]
+-		}
+-	}]
+-}
+-
+-pcm.dmixer  {
++pcm.dmixer {
+    type dmix
+    ipc_key 1024
+    slave {
+@@ -96,10 +83,6 @@ ctl.dmixer {
+    device 1
+ }
+ 
+-pcm.dsp {
+-    type plug
+-    slave.pcm "dmixer"     # use our new PCM here
+-}
+ 
+ ctl.mixer {
+     type hw
+@@ -116,16 +99,13 @@ pcm.mico_record {
+ }
+ 
+ pcm.noop {
+-   type dsnoop
+-   ipc_key 1024
++   type plug
+    slave {
+      pcm "hw:0,3"
+ 	 format S32_LE
+ 	 rate 48000
+-	 channels 8
+-	 period_size 4096
++	 channels 2
+    }
+ }
+ 
+ 
+-defaults.pcm.rate_converter "speexrate_medium"

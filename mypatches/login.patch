@@ -1,0 +1,136 @@
+diff --git a/etc/config/dropbear b/etc/config/dropbear
+index 699276f..27e9a7f 100644
+--- a/etc/config/dropbear
++++ b/etc/config/dropbear
+@@ -2,5 +2,6 @@ config dropbear
+ 	option PasswordAuth '1'
+ 	option RootPasswordAuth '1'
+ 	option Port         '22'
+-	option BannerFile   '/etc/banner'
++	# option BannerFile   '/etc/banner'
+ 	option rsakeyfile '/data/etc/dropbear/dropbear_rsa_host_key'
++	option mdns '0'
+diff --git a/etc/init.d/boot b/etc/init.d/boot
+index a944bef..ef4bcac 100755
+--- a/etc/init.d/boot
++++ b/etc/init.d/boot
+@@ -114,6 +114,16 @@ boot()
+ 
+     /sbin/ifconfig lo up
+ 
++
++    # update persistent password
++    if [ ! -f /data/console/shadow ]; then
++        mkdir -p /data/console
++        cp /etc/shadow /data/console
++        cp /etc/passwd /data/console
++    fi
++    mount --bind /data/console/shadow /etc/shadow
++
++
+     # reset mrvl wifi
+     [ ! -d /sys/class/gpio/gpio78 ] && echo 78 > /sys/class/gpio/export
+     echo out > /sys/class/gpio/gpio78/direction
+diff --git a/etc/init.d/dropbear b/etc/init.d/dropbear
+index a7b5111..be4c547 100755
+--- a/etc/init.d/dropbear
++++ b/etc/init.d/dropbear
+@@ -30,11 +30,11 @@ append_ports()
+ validate_section_dropbear()
+ {
+ 	uci_validate_section dropbear dropbear "${1}" \
+-		'PasswordAuth:bool:0' \
++		'PasswordAuth:bool:1' \
+ 		'enable:bool:1' \
+ 		'Interface:string' \
+ 		'GatewayPorts:bool:0' \
+-		'RootPasswordAuth:bool:0' \
++		'RootPasswordAuth:bool:1' \
+ 		'RootLogin:bool:1' \
+ 		'rsakeyfile:file' \
+ 		'BannerFile:file' \
+@@ -54,7 +54,7 @@ dropbear_instance()
+ 
+ 	validate_section_dropbear "${1}" || {
+ 		echo "validation failed"
+-		return 1
++
+ 	}
+ 
+ 	[ -n "${Interface}" ] && {
+@@ -64,7 +64,7 @@ dropbear_instance()
+ 		}
+ 	}
+ 
+-	[ "${enable}" = "0" ] && return 1
++
+ 	PIDCOUNT="$(( ${PIDCOUNT} + 1))"
+ 	local pid_file="/var/run/${NAME}.${PIDCOUNT}.pid"
+ 
+@@ -112,24 +112,23 @@ load_interfaces()
+ {
+ 	config_get interface "$1" Interface
+ 	config_get enable "$1" enable 1
+-
+-	[ "${enable}" = "1" ] && interfaces=" ${interface} ${interfaces}"
++	interfaces=" ${interface} ${interfaces}"
+ }
+ 
+ start_service()
+ {
+-	[ x"bluetooth" == x`micocfg_work_mode` ] && {
+-        logger -t dropbear.init.d -p 3  "in bluetooth mode, will not start"
+-        return
+-    }
+-
+-	ssh_en=`cat /data/ssh_en 2>/dev/null`
+-	ssh_en_bind=`cat /data/.ssh_en 2>/dev/null`
+-	ssh_en_tmp=`cat /tmp/ssh_en 2>/dev/null`
+-	channel=`micocfg_channel 2>/dev/null`
+-	if [ "$ssh_en" != "1" -a "$ssh_en_bind" != "1" -a "$ssh_en_tmp" != "1" -a "$channel" = "release" ]; then
+-		return 0                                                                                  
+-	fi
++
++
++
++
++
++
++
++
++
++
++                                                                              
++
+ 	[ -s /data/etc/dropbear/dropbear_rsa_host_key ] || keygen
+ 
+ 	. /lib/functions.sh
+diff --git a/etc/inittab b/etc/inittab
+index 1f4413d..e9de30b 100644
+--- a/etc/inittab
++++ b/etc/inittab
+@@ -1,5 +1,5 @@
+ ::sysinit:/etc/init.d/rcS S boot
+ ::shutdown:/etc/init.d/rcS K shutdown
+ tts/0::askfirst:/bin/ash --login
+-ttyS0::askfirst:/bin/login
++ttyS0::askfirst:/bin/ash --login
+ tty1::askfirst:/bin/ash --login
+diff --git a/etc/pam.d/common-auth b/etc/pam.d/common-auth
+index 111e32a..971eba8 100644
+--- a/etc/pam.d/common-auth
++++ b/etc/pam.d/common-auth
+@@ -8,10 +8,10 @@
+ # traditional Unix authentication mechanisms.
+ #
+ 
+-auth sufficient libmico-pam.so
+-account sufficient libmico-pam.so
++# auth sufficient libmico-pam.so
++# account sufficient libmico-pam.so
+ # here are the per-package modules (the "Primary" block)
+-# auth	[success=1 default=ignore]	pam_unix.so nullok_secure
++auth	[success=1 default=ignore]	pam_unix.so nullok_secure
+ # here's the fallback if no module succeeds
+ auth	requisite			pam_deny.so
+ # prime the stack with a positive return value if there isn't one already;

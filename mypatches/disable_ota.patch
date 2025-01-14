@@ -1,0 +1,10 @@
+diff --git a/etc/crontabs/root b/etc/crontabs/root
+index 2d153f7..2a89692 100644
+--- a/etc/crontabs/root
++++ b/etc/crontabs/root
+@@ -2,4 +2,4 @@
+ * * * * * /usr/sbin/network_probe.sh
+ 32 4 * * * /usr/sbin/pns refresh
+ */10 * * * * /usr/bin/check_mediaplayer_status
+-* 3 * * * /bin/ota slient  # check ota
++# * 3 * * * /bin/ota slient  # check ota
