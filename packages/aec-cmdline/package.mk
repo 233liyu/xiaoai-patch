@@ -4,7 +4,7 @@ PACKAGE_SRC="https://github.com/dr-ni/aec_cmdline/archive/${PACKAGE_VERSION}.tar
 PACKAGE_DEPENDS="alsa-lib speexdsp"
 
 make_package() {
-	CC="${BUILD_CC}" CFLAGS="${BUILD_CFLAGS} -mfloat-abi=hard" \
+	CC="${BUILD_CC}" CFLAGS="${BUILD_CFLAGS}" \
 	LDFLAGS="${BUILD_LDFLAGS} -ldl -lm -Wl,-Bstatic -Wl,-Bdynamic -lrt -lpthread -lasound -lspeexdsp" \
 	make -j${MAKE_JOBS}
 }

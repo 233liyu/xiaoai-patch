@@ -572,6 +572,7 @@ process_package() {
     if [[ ! -z "${PACKAGE_DEPENDS}" ]]; then
         for depend in ${PACKAGE_DEPENDS}
         do
+            echo "package ${PACKAGE} depend on ${depend}"
             process_package $depend
         done
         # building dependencies will override global package variables and
@@ -702,7 +703,7 @@ mkdir -p ${STAGING_TO_TARGET_DIR}
 write_build_config
 [[ ! $? -eq 0 ]] && exit 1
 
-PACKAGES_TO_BUILD="update-libs update-binaries support jq services music improv getevent core_api"
+PACKAGES_TO_BUILD="update-libs update-binaries sox"
 if [[ "${BUILD_MODEL}" != "LX01" ]]; then
   PACKAGES_TO_BUILD+=" aec-cmdline screen"
 fi

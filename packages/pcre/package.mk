@@ -1,6 +1,7 @@
 PACKAGE_NAME="Perl Compatible Regular Expressions"
 PACKAGE_VERSION="8.44"
-PACKAGE_SRC="https://sourceforge.net/projects/pcre/files/pcre/${PACKAGE_VERSION}/pcre-${PACKAGE_VERSION}.tar.gz"
+# https://zenlayer.dl.sourceforge.net/project/pcre/pcre/8.44/pcre-8.44.tar.gz?viasf=1
+PACKAGE_SRC="https://zenlayer.dl.sourceforge.net/project/pcre/pcre/${PACKAGE_VERSION}/pcre-${PACKAGE_VERSION}.tar.gz"
 PACKAGE_DEPENDS="zlib bzip2"
 
 configure_package() {

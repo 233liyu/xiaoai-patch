@@ -1,0 +1,150 @@
+--- squashfs-root/etc/init.d/wireless	2023-11-24 15:14:06.000000000 +0800
++++ mypatches/wireless	2025-01-15 13:17:55.134411271 +0800
+@@ -26,7 +26,7 @@ MIOT_HIDDEN_SSID="25c829b1922d3123_miwif
+     MIOT_AUTO_PROVISION_SUPPORT="yes"
+ }
+ 
+-WIRELESS_MODE=$(micocfg_wireless_mode)
++WIRELESS_MODE="AP_STA"
+ [ x"$WIRELESS_MODE" == x"AP-STA" ] && {
+     AP_IF="wlan1"
+ }
+@@ -75,6 +75,9 @@ VOL_VALUE=$(micocfg_default_volume_absol
+ wpa_result="/tmp/wpa_supplicant_auth_result"
+ NETWORK_STATE_FILE="/tmp/network.state"
+ 
++WIFI_PSK_FILE="/data/wifi_psk"
++
++
+ wireless_log()
+ { 
+     logger -t wireless[$$] -p 3 "$*"
+@@ -941,9 +944,9 @@ conf_prepare()
+         countryconf="country=$_country"
+     }
+ 
++
+     echo -e "ctrl_interface=/var/run/wpa_supplicant
+ #$countryconf
+-ap_scan=1
+ update_config=1
+ " > $WIRELESS_CONF
+ 
+@@ -955,15 +958,31 @@ update_config=1
+         echo "p2p_disabled=1" >> $WIRELESS_CONF
+     }
+ 
+-#    [ x"$MIOT_AUTO_PROVISION_SUPPORT" == x"yes" ] && {
+-#        echo -e "
+-#network={
+-#        ssid=\"$MIOT_HIDDEN_SSID\"
+-#        scan_ssid=1
+-#        bssid=ff:ff:ff:ff:ff:ff
+-#        key_mgmt=NONE
+-#}" >> $WIRELESS_CONF
+-#    }
++    # [ ! -f "/data/status/config_done" ]
++   [ -f "$WIFI_PSK_FILE" ] && {
++    SSID=$(cat $WIFI_PSK_FILE | grep -w "ssid" | awk -F= '{print $2}')
++    PSK=$(cat $WIFI_PSK_FILE | grep -w "psk" | awk -F= '{print $2}')
++
++    echo -e "
++network={
++    ssid=\"$SSID\"
++    psk=\"$PSK\"
++    scan_ssid=1
++    key_mgmt=WPA-PSK
++    frequency=2412
++    priority=1
++}
++
++network={
++    ssid=\"$SSID\"
++    psk=\"$PSK\"
++    scan_ssid=1
++    key_mgmt=WPA-PSK
++    frequency=5180
++    priority=2
++}" >> $WIRELESS_CONF
++
++   }
+ 
+ #passive_scan=0
+ 
+@@ -1400,6 +1419,9 @@ sta_start()
+     case "$MODEL" in LX01|lx01*) ifconfig $STA_IF mtu 900;; esac
+     #. /lib/functions/procd.sh
+ 
++    # Check if the wireless configuration file exists. If it does not exist, 
++    # prepare the configuration file by calling the `conf_prepare` function 
++    # and redirect any output to /dev/null to suppress it.
+     [ ! -f $WIRELESS_CONF ] && {
+         conf_prepare $WIRELESS_CONF > /dev/null 2>&1
+     }
+@@ -2844,36 +2866,51 @@ start_service()
+             show_led 27 &
+         fi
+     }
+-    [ ! -f /data/status/config_done ] && {
+-        wireless_log "not config done, force remove $WIRELESS_CONF"
+-        file_delete $WIRELESS_CONF
+-        show_led 6
++    # [ ! -f /data/status/config_done ] && {
++    #     wireless_log "not config done, force remove $WIRELESS_CONF"
++    #     file_delete $WIRELESS_CONF
++    #     show_led 6
+ 
+-        wireless_log "wireless mode: $WIRELESS_MODE wifi scan: $MIIO_WIFI_SCAN"
++    #     wireless_log "wireless mode: $WIRELESS_MODE wifi scan: $MIIO_WIFI_SCAN"
+ 
+-        # start sta for get wifi scan list, ap will start in miio_helper after scan done.
+-        sta_start >/dev/null 2>&1
++    #     # start sta for get wifi scan list, ap will start in miio_helper after scan done.
++    #     sta_start >/dev/null 2>&1
+ 
+-        wpa_check 5 1>/dev/null 2>/dev/null
+-        wpa_add_auto_provision_for_scan >/dev/null 2>&1
++    #     wpa_check 5 1>/dev/null 2>/dev/null
++    #     wpa_add_auto_provision_for_scan >/dev/null 2>&1
+ 
+-        [ x"$WIRELESS_MODE" == x"AP-STA" ] && {
+-            ap_start >/dev/null 2>&1
+-        }
++    #     [ x"$WIRELESS_MODE" == x"AP-STA" ] && {
++    #         ap_start >/dev/null 2>&1
++    #     }
+ 
+-        return 0
+-    }
++    #     return 0
++    # }
+ 
++    
++
++    # 打开disable的配置
+     conf_enable_all >/dev/null 2>&1
+     sta_start  >/dev/null 2>&1
+     {
++        # Check the status of the WPA (Wi-Fi Protected Access) connection for 30 seconds.
+         wpa_check 30
++        # Add auto-provisioning for Wi-Fi scan to automatically configure the network.
+         wpa_add_auto_provision_for_scan >/dev/null 2>&1
++
++        # Set the priority for all configured Wi-Fi networks.
+         wpa_set_priority_for_all >/dev/null 2>&1
++
++        # Save the current Wi-Fi configuration to the appropriate configuration file.
+         conf_save >/dev/null 2>&1
++
++        # Reassociate with the Wi-Fi network to apply any changes made to the configuration.
+         wpa_reassociate >/dev/null 2>&1
++
++        # Run the wireless_point.sh script in the background to handle additional wireless tasks.
+         /usr/bin/wireless_point.sh >/dev/null & 
+-    } 1>/dev/null 2>/dev/null &
++    } 1>/dev/null 2>&1 &
++    
++    # Return 0 to indicate successful execution of the function.
+     return 0
+ }
+ 

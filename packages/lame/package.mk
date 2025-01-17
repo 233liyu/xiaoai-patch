@@ -1,6 +1,6 @@
 PACKAGE_NAME="LAME MP3 Encoder"
 PACKAGE_VERSION="3.100"
-PACKAGE_SRC="https://sourceforge.net/projects/lame/files/lame/${PACKAGE_VERSION}/lame-${PACKAGE_VERSION}.tar.gz"
+PACKAGE_SRC="https://zenlayer.dl.sourceforge.net/project/lame/lame/${PACKAGE_VERSION}/lame-${PACKAGE_VERSION}.tar.gz"
 PACKAGE_DEPENDS="ncurses"
 
 configure_package() {

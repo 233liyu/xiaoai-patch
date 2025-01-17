@@ -1,7 +1,7 @@
 PACKAGE_NAME="D-Bus"
 PACKAGE_VERSION="1.14.8"
 PACKAGE_SRC="https://gitlab.freedesktop.org/dbus/dbus/-/archive/dbus-${PACKAGE_VERSION}/dbus-dbus-${PACKAGE_VERSION}.tar.gz"
-PACKAGE_DEPENDS="expat"
+PACKAGE_DEPENDS="libffi expat"
 
 preconfigure_package() {
 	autoreconf -fi
@@ -13,7 +13,7 @@ configure_package() {
 	   LDFLAGS="${BUILD_LDFLAGS}" \
 	   PKG_CONFIG_LIBDIR="${BUILD_PKG_CONFIG_LIBDIR}" PKG_CONFIG_SYSROOT_DIR="${BUILD_PKG_CONFIG_SYSROOT_DIR}" \
 	   ./configure --build=${MACHTYPE} --host=${BUILD_TARGET} \
-	   --prefix=${INSTALL_PREFIX} --sysconfdir=/etc --localstatedir=/var
+	   --prefix=${INSTALL_PREFIX} --sysconfdir=/etc --localstatedir=/var -rpath-link=${STAGING_DIR}/lib \
 }
 
 premake_package() {

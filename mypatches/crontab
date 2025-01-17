@@ -1,0 +1,7 @@
+*/5 * * * * /usr/sbin/easy_logcut size
+* * * * * /usr/sbin/network_probe.sh
+# 32 4 * * * /usr/sbin/pns refresh
+# */10 * * * * /usr/bin/check_mediaplayer_status
+# * 3 * * * /bin/ota slient  # check ota
+11 * * * * * /usr/sbin/ntpd -d -nq -p 0.pool.ntp.org -p 1.pool.ntp.org -p 2.pool.ntp.org
+
