@@ -21,8 +21,15 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     openjdk-11-jre openjdk-11-jdk && \
     apt-get clean
 
+
 # RUN apt update && apt install -y qemu-system-arm
 RUN python3 -m pip install meson ninja
+
+
+# RUN mkdir /opt/musl-cross-make
+# COPY build.sh /opt/musl-cross-make
+
+# RUN cd /opt/musl-cross-make && ./build.sh
 
 VOLUME /xiaoai
 WORKDIR /xiaoai

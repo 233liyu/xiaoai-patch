@@ -703,7 +703,7 @@ mkdir -p ${STAGING_TO_TARGET_DIR}
 write_build_config
 [[ ! $? -eq 0 ]] && exit 1
 
-PACKAGES_TO_BUILD="update-libs update-binaries sox"
+PACKAGES_TO_BUILD="update-libs update-binaries"
 if [[ "${BUILD_MODEL}" != "LX01" ]]; then
   PACKAGES_TO_BUILD+=" aec-cmdline screen"
 fi

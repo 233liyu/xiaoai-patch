@@ -44,7 +44,7 @@
 -#}" >> $WIRELESS_CONF
 -#    }
 +    # [ ! -f "/data/status/config_done" ]
-+   [ -f "$WIFI_PSK_FILE" ] && {
++   [ -e "$WIFI_PSK_FILE" ] && {
 +    SSID=$(cat $WIFI_PSK_FILE | grep -w "ssid" | awk -F= '{print $2}')
 +    PSK=$(cat $WIFI_PSK_FILE | grep -w "psk" | awk -F= '{print $2}')
 +
