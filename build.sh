@@ -362,7 +362,7 @@ build_sox () {
 
     make -s && make install
 
-    cp $SRC_DOWNLOAD_DIR/arm-linux-gnueabihf/sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf/lib/libgomp.so* $BUILD_OUTPUT_DIR/lib/
+    cp $BUILD_DIR/gcc-linaro/sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf/lib/libgomp.so* $BUILD_OUTPUT_DIR/lib/
     # cp /usr/arm-linux-gnueabihf/lib/libgomp.so.1.0.0 $BUILD_OUTPUT_DIR/lib/
     # cp /usr/arm-linux-gnueabihf/lib/libc* $BUILD_OUTPUT_DIR/usr/lib/
     # cp /usr/arm-linux-gnueabihf/lib/libm* $BUILD_OUTPUT_DIR/usr/lib/
@@ -373,20 +373,102 @@ build_sox () {
 prepare_linaro (){
     echo "Preparing linaro toolchain"
     cd $SRC_DOWNLOAD_DIR/arm-linux-gnueabihf
-    mkdir -p $BUILD_DIR/gcc-linaro
+    rm -rf $BUILD_DIR/gcc-linaro && mkdir -p $BUILD_DIR/gcc-linaro
+
+    [ ! -e 'gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz' ] && {
+        wget https://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/arm-linux-gnueabihf/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz
+    }
+
 
     rm gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar 
 
     xz -d gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz 
-    tar -xvf gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar -C $BUILD_DIR/gcc-linaro
+    tar -xf gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar -C $BUILD_DIR/gcc-linaro
 
+    [ ! -e 'sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar.xz' ] && {
+        wget https://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/arm-linux-gnueabihf/sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar.xz
+    }
+
+    rm sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar
     xz -d sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar.xz
-
-
-    cd $BUILD_DIR/gcc-linaro && mv ./gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/* .
+    tar -xf sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar -C $BUILD_DIR/gcc-linaro
     
 }
 
+
+# build_python() {
+
+#     mkdir -p $SRC_DOWNLOAD_DIR && cd $SRC_DOWNLOAD_DIR && mkdir -p python && cd python
+#     download_file=Python-3.13.2.tgz
+#     if [ ! -e $download_file ]; then 
+#         wget -O $download_file https://www.python.org/ftp/python/3.13.2/Python-3.13.2.tgz
+#     fi
+
+#     # unzip python 
+#     mkdir -p $BUILD_PACKAGE_DIR/python
+#     tar -xvzf $download_file -C $BUILD_PACKAGE_DIR/python
+
+#     cd $BUILD_PACKAGE_DIR/python/Python-3.13.2/
+
+#     ./configure --prefix=/usr/local
+#     make
+#     make install
+
+#     make clean
+
+
+#     export SYSROOT=$BUILD_DIR/gcc-linaro/sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf
+#     # export CFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
+#     # export CPPFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
+#     export LDFLAGS="--sysroot=$SYSROOT -lm"
+
+#     CC=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc 
+#     CXX=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++ 
+
+#     PATH=$PATH:$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin
+
+#     ./configure --prefix=$BUILD_OUTPUT_DIR/usr --host=arm-linux-gnueabihf --target=arm-linux-gnueabihf --build=x86_64 --with-build-python=/usr/local/bin/python3 \
+# 	ac_cv_file__dev_ptmx=no \
+# 	ac_cv_file__dev_ptc=no \
+# 	ac_cv_have_long_long_format=yes \
+# 	--enable-optimizations \
+# 	--with-lto \
+# 	--enable-shared \
+# 	--disable-ipv6 \
+# 	--disable-test-modules \
+# 	--without-doc-strings \
+# 	--with-ensurepip=install 
+#     make 
+#     make install
+# }
+
+# build_zlib() {
+#     mkdir -p $SRC_DOWNLOAD_DIR && cd $SRC_DOWNLOAD_DIR && mkdir -p zlib && cd zlib
+#     download_file=zlib-1.3.1.tar.gz
+#     if [ ! -e $download_file ]; then 
+#         wget -O $download_file https://www.zlib.net/zlib-1.3.1.tar.gz
+#     fi
+
+#     mkdir -p $BUILD_PACKAGE_DIR/zlib
+#     tar -xvf $download_file -C $BUILD_PACKAGE_DIR/zlib
+
+#     cd $BUILD_PACKAGE_DIR/zlib/zlib-1.3.1
+
+#     export SYSROOT=$BUILD_DIR/gcc-linaro/sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf
+#     # export CFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
+#     # export CPPFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
+#     export LDFLAGS="--sysroot=$SYSROOT -lm"
+
+#     CHOST=arm
+#     AR=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-ar
+#     CC=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc 
+#     CXX=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++ 
+#     RANLIB=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-ranlib
+
+#     PATH=$PATH:$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin
+
+#     ./configure --prefix=$BUILD_OUTPUT_DIR/usr
+# }
 
 
 do_clear
