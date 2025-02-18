@@ -25,6 +25,14 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # RUN apt update && apt install -y qemu-system-arm
 RUN python3 -m pip install meson ninja
 
+RUN wget https://www.python.org/ftp/python/3.13.2/Python-3.13.2.tgz -O Python-3.13.2.tgz && \
+    tar -zxvf Python-3.13.2.tgz && \
+    cd Python-3.13.2 && \
+    ./configure --enable-optimizations && \
+    make -j$(nproc) && \
+    make altinstall && \
+    rm -rf /root/Python-3.13.2*
+
 
 # RUN mkdir /opt/musl-cross-make
 # COPY build.sh /opt/musl-cross-make

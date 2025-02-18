@@ -27,7 +27,7 @@ do_clear () {
 }
 
 apply_patches () {
-    echo_stage "Applying patches"
+    echo "Applying patches"
     for patch in $(find ./mypatches -name "*.patch"); do
         echo "Applying patch: $patch"
         patch -p1 -d $ROOT_SQUASHFS < $patch
@@ -176,25 +176,26 @@ build_sox () {
     mkdir -p $SRC_DOWNLOAD_DIR && cd $SRC_DOWNLOAD_DIR && mkdir -p sox && cd sox
     download_file=sox-14.4.2.tar.bz2
     if [ ! -e $download_file ]; then 
-        wget -O $download_file https://sourceforge.net/projects/sox/files/sox/14.4.2/sox-14.4.2.tar.bz2/download
+        wget -O $download_file https://sourceforge.net/projects/sox/files/sox/14.4.2/sox-14.4.2.tar.bz2/download?use_mirror=zenlayer
     fi
 
     # unzip sox 
+    rm -rf $BUILD_PACKAGE_DIR/sox
     mkdir -p $BUILD_PACKAGE_DIR/sox
     tar -xvjf $download_file -C $BUILD_PACKAGE_DIR/sox
 
     cd $BUILD_PACKAGE_DIR/sox/sox-14.4.2/
 
-    export SYSROOT=/xiaoai/build-packages/src/arm-linux-gnueabihf/sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf
+    export SYSROOT=$BUILD_DIR/gcc-linaro/sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf
 
     # export CFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
     # export CPPFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
     export LDFLAGS="--sysroot=$SYSROOT -lm"
 
-    CC=$BUILD_DIR/gcc-linaro/bin/arm-linux-gnueabihf-gcc 
-    CXX=$BUILD_DIR/gcc-linaro/bin/arm-linux-gnueabihf-g++ 
+    export CC=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc 
+    export CXX=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++
 
-    PATH=$PATH:$BUILD_DIR/gcc-linaro/bin/
+    export PATH=$PATH:$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin
 
 
     # cross compile from amd64 to aarch64 system
@@ -372,103 +373,88 @@ build_sox () {
 
 prepare_linaro (){
     echo "Preparing linaro toolchain"
-    cd $SRC_DOWNLOAD_DIR/arm-linux-gnueabihf
+    mkdir -p $SRC_DOWNLOAD_DIR/arm-linux-gnueabihf && cd $SRC_DOWNLOAD_DIR/arm-linux-gnueabihf
     rm -rf $BUILD_DIR/gcc-linaro && mkdir -p $BUILD_DIR/gcc-linaro
 
-    [ ! -e 'gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz' ] && {
+    [ ! -e 'gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz' && ! -e 'gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar' ] && {
         wget https://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/arm-linux-gnueabihf/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz
     }
 
+    [ -e 'gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz' ] && { 
+        rm gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar
+        xz -d gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz 
+    }
 
-    rm gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar 
-
-    xz -d gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz 
     tar -xf gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar -C $BUILD_DIR/gcc-linaro
 
-    [ ! -e 'sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar.xz' ] && {
+    [ ! -e 'sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar.xz' && ! -e 'sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar' ] && {
         wget https://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/arm-linux-gnueabihf/sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar.xz
     }
 
-    rm sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar
-    xz -d sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar.xz
+    [ -e 'sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar.xz' ] && {
+        rm sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar
+        xz -d sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar.xz
+    }
+
     tar -xf sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf.tar -C $BUILD_DIR/gcc-linaro
-    
 }
 
 
-# build_python() {
+build_python() {
 
-#     mkdir -p $SRC_DOWNLOAD_DIR && cd $SRC_DOWNLOAD_DIR && mkdir -p python && cd python
-#     download_file=Python-3.13.2.tgz
-#     if [ ! -e $download_file ]; then 
-#         wget -O $download_file https://www.python.org/ftp/python/3.13.2/Python-3.13.2.tgz
-#     fi
+    mkdir -p $SRC_DOWNLOAD_DIR && cd $SRC_DOWNLOAD_DIR && mkdir -p python && cd python
+    download_file=Python-3.13.2.tgz
+    if [ ! -e $download_file ]; then 
+        wget -O $download_file https://www.python.org/ftp/python/3.13.2/Python-3.13.2.tgz
+    fi
 
-#     # unzip python 
-#     mkdir -p $BUILD_PACKAGE_DIR/python
-#     tar -xvzf $download_file -C $BUILD_PACKAGE_DIR/python
+    # unzip python 
+    mkdir -p $BUILD_PACKAGE_DIR/python
+    tar -xvzf $download_file -C $BUILD_PACKAGE_DIR/python
 
-#     cd $BUILD_PACKAGE_DIR/python/Python-3.13.2/
+    cd $BUILD_PACKAGE_DIR/python/Python-3.13.2/
 
-#     ./configure --prefix=/usr/local
-#     make
-#     make install
+    # export CFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
+    export CPPFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include -I$BUILD_OUTPUT_DIR/usr/include"
+    export LDFLAGS="--sysroot=$SYSROOT -lm -L$BUILD_OUTPUT_DIR/usr/lib"
 
-#     make clean
+    ./configure --prefix=$BUILD_OUTPUT_DIR/usr --host=arm-linux-gnueabihf --target=arm-linux-gnueabihf --build=x86_64 --with-build-python=/usr/local/bin/python3.13 \
+	ac_cv_file__dev_ptmx=no \
+	ac_cv_file__dev_ptc=no \
+	ac_cv_have_long_long_format=yes \
+	--enable-optimizations \
+	--with-lto \
+	--enable-shared \
+	--disable-ipv6 \
+	--disable-test-modules \
+	--without-doc-strings \
+	--with-ensurepip=install 
+    make 
+    make install
+}
 
+build_zlib() {
+    mkdir -p $SRC_DOWNLOAD_DIR && cd $SRC_DOWNLOAD_DIR && mkdir -p zlib && cd zlib
+    download_file=zlib-1.3.1.tar.gz
+    if [ ! -e $download_file ]; then 
+        wget -O $download_file https://www.zlib.net/zlib-1.3.1.tar.gz
+    fi
 
-#     export SYSROOT=$BUILD_DIR/gcc-linaro/sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf
-#     # export CFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
-#     # export CPPFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
-#     export LDFLAGS="--sysroot=$SYSROOT -lm"
+    mkdir -p $BUILD_PACKAGE_DIR/zlib
+    tar -xvf $download_file -C $BUILD_PACKAGE_DIR/zlib
 
-#     CC=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc 
-#     CXX=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++ 
+    cd $BUILD_PACKAGE_DIR/zlib/zlib-1.3.1
 
-#     PATH=$PATH:$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin
+    # export CFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
+    # export CPPFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
+    export LDFLAGS="--sysroot=$SYSROOT -lm"
 
-#     ./configure --prefix=$BUILD_OUTPUT_DIR/usr --host=arm-linux-gnueabihf --target=arm-linux-gnueabihf --build=x86_64 --with-build-python=/usr/local/bin/python3 \
-# 	ac_cv_file__dev_ptmx=no \
-# 	ac_cv_file__dev_ptc=no \
-# 	ac_cv_have_long_long_format=yes \
-# 	--enable-optimizations \
-# 	--with-lto \
-# 	--enable-shared \
-# 	--disable-ipv6 \
-# 	--disable-test-modules \
-# 	--without-doc-strings \
-# 	--with-ensurepip=install 
-#     make 
-#     make install
-# }
+    CHOST=arm
 
-# build_zlib() {
-#     mkdir -p $SRC_DOWNLOAD_DIR && cd $SRC_DOWNLOAD_DIR && mkdir -p zlib && cd zlib
-#     download_file=zlib-1.3.1.tar.gz
-#     if [ ! -e $download_file ]; then 
-#         wget -O $download_file https://www.zlib.net/zlib-1.3.1.tar.gz
-#     fi
+    ./configure --prefix=$BUILD_OUTPUT_DIR/usr
 
-#     mkdir -p $BUILD_PACKAGE_DIR/zlib
-#     tar -xvf $download_file -C $BUILD_PACKAGE_DIR/zlib
-
-#     cd $BUILD_PACKAGE_DIR/zlib/zlib-1.3.1
-
-#     export SYSROOT=$BUILD_DIR/gcc-linaro/sysroot-eglibc-linaro-2017.01-arm-linux-gnueabihf
-#     # export CFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
-#     # export CPPFLAGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include"
-#     export LDFLAGS="--sysroot=$SYSROOT -lm"
-
-#     CHOST=arm
-#     AR=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-ar
-#     CC=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc 
-#     CXX=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-g++ 
-#     RANLIB=$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-ranlib
-
-#     PATH=$PATH:$BUILD_DIR/gcc-linaro/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/bin
-
-#     ./configure --prefix=$BUILD_OUTPUT_DIR/usr
-# }
+    make && make install
+}
 
 
 do_clear
@@ -487,8 +473,12 @@ apply_patches
 remove_services
 remove_bins
 
+prepare_linaro
+
 # build_python
 build_sox
+build_zlib
+# build_python
 # scripts/92_copy_build_packages.sh
 
 
